@@ -8,7 +8,13 @@ import time
 import sys
 import os
 
-COMFYUI_URL = os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188")
+COMFYUI_URL = os.environ.get("COMFYUI_URL", "https://cloud.comfy.org")
+API_KEY = os.environ.get("COMFY_API_KEY", "bf96a1c35a84a67c8eb93b80261fa2584cff9935c055ad3d9508e67ee05d6f54")
+
+BASE_HEADERS = {
+    "Content-Type": "application/json",
+    "X-API-Key": API_KEY,
+}
 
 
 def queue_prompt(workflow: dict) -> str:
@@ -16,7 +22,7 @@ def queue_prompt(workflow: dict) -> str:
     req = urllib.request.Request(
         f"{COMFYUI_URL}/prompt",
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers=BASE_HEADERS,
     )
     with urllib.request.urlopen(req) as resp:
         result = json.loads(resp.read())
@@ -25,11 +31,12 @@ def queue_prompt(workflow: dict) -> str:
 
 def get_history(prompt_id: str) -> dict:
     url = f"{COMFYUI_URL}/history/{urllib.parse.quote(prompt_id)}"
-    with urllib.request.urlopen(url) as resp:
+    req = urllib.request.Request(url, headers=BASE_HEADERS)
+    with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 
 
-def wait_for_completion(prompt_id: str, poll_interval: float = 1.0) -> dict:
+def wait_for_completion(prompt_id: str, poll_interval: float = 2.0) -> dict:
     print(f"Waiting for prompt {prompt_id} to complete...", flush=True)
     while True:
         history = get_history(prompt_id)
@@ -43,7 +50,8 @@ def download_image(filename: str, subfolder: str, folder_type: str) -> bytes:
         {"filename": filename, "subfolder": subfolder, "type": folder_type}
     )
     url = f"{COMFYUI_URL}/view?{params}"
-    with urllib.request.urlopen(url) as resp:
+    req = urllib.request.Request(url, headers=BASE_HEADERS)
+    with urllib.request.urlopen(req) as resp:
         return resp.read()
 
 
